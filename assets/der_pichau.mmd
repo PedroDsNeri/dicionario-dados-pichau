@@ -1,0 +1,121 @@
+erDiagram
+
+    %% ENTIDADES E ATRIBUTOS
+
+    categoria {
+        INT id_categoria PK "NOT NULL"
+        VARCHAR_100 nome UK "NOT NULL"
+        TINYINT_1 ativo "NOT NULL DEFAULT 1"
+    }
+
+    forma_pagamento {
+        INT id_forma_pagamento PK "NOT NULL"
+        VARCHAR_50 descricao UK "NOT NULL"
+        TINYINT_1 ativo "NOT NULL DEFAULT 1"
+    }
+
+    cliente {
+        INT id_cliente PK "NOT NULL"
+        VARCHAR_150 nome "NOT NULL"
+        VARCHAR_14 cpf_cnpj UK "NOT NULL"
+        VARCHAR_15 telefone "NOT NULL"
+        VARCHAR_150 email "NULL"
+        DATETIME data_consentimento "NOT NULL DEFAULT CURRENT_TIMESTAMP"
+        DATETIME data_anonimizacao "NULL"
+        TINYINT_1 ativo "NOT NULL DEFAULT 1"
+    }
+
+    usuario {
+        INT id_usuario PK "NOT NULL"
+        VARCHAR_150 nome "NOT NULL"
+        VARCHAR_50 login UK "NOT NULL"
+        VARCHAR_255 senha_hash "NOT NULL"
+        ENUM perfil "NOT NULL"
+        TINYINT_1 ativo "NOT NULL DEFAULT 1"
+    }
+
+    endereco {
+        INT id_endereco PK "NOT NULL"
+        INT id_cliente FK "NOT NULL"
+        VARCHAR_150 logradouro "NOT NULL"
+        VARCHAR_10 numero "NOT NULL"
+        VARCHAR_60 complemento "NULL"
+        VARCHAR_80 bairro "NOT NULL"
+        CHAR_8 cep "NOT NULL CHAR_LENGTH(cep) = 8"
+        VARCHAR_80 cidade "NOT NULL"
+        CHAR_2 uf "NOT NULL CHAR_LENGTH(uf) = 2"
+        TINYINT_1 ativo "NOT NULL DEFAULT 1"
+    }
+
+    produto {
+        INT id_produto PK "NOT NULL"
+        INT id_categoria FK "NOT NULL"
+        VARCHAR_200 descricao "NOT NULL"
+        DECIMAL_10_2 preco_tabela "NOT NULL preco_tabela > 0"
+        INT saldo_estoque "NOT NULL saldo_estoque >= 0 DEFAULT 0"
+        TINYINT_1 ativo "NOT NULL DEFAULT 1"
+    }
+
+    historico_preco {
+        INT id_historico_preco PK "NOT NULL"
+        INT id_produto FK "NOT NULL"
+        INT id_usuario FK "NOT NULL"
+        DECIMAL_10_2 preco_anterior "NOT NULL preco_anterior > 0"
+        DECIMAL_10_2 preco_novo "NOT NULL preco_novo > 0"
+        DATETIME data_alteracao "NOT NULL DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    pedido {
+        INT id_pedido PK "NOT NULL"
+        INT id_cliente FK "NOT NULL"
+        INT id_usuario FK "NOT NULL"
+        INT id_forma_pagamento FK "NOT NULL"
+        INT id_endereco FK "NOT NULL"
+        DATETIME data_hora "NOT NULL DEFAULT CURRENT_TIMESTAMP"
+        ENUM situacao "NOT NULL DEFAULT 'ABERTO'"
+        DECIMAL_10_2 valor_desconto "NOT NULL valor_desconto >= 0 DEFAULT 0.00"
+        DECIMAL_10_2 valor_total "NOT NULL valor_total >= 0 DEFAULT 0.00"
+        DATETIME data_cancelamento "NULL"
+    }
+
+    item_pedido {
+        INT id_item_pedido PK "NOT NULL"
+        INT id_pedido FK "NOT NULL"
+        INT id_produto FK "NOT NULL"
+        INT quantidade "NOT NULL quantidade > 0"
+        DECIMAL_10_2 preco_unitario_venda "NOT NULL preco_unitario_venda >= 0"
+    }
+
+    estorno {
+        INT id_estorno PK "NOT NULL"
+        INT id_pedido FK,UK "NOT NULL"
+        INT id_usuario FK "NOT NULL"
+        DECIMAL_10_2 valor_estornado "NOT NULL valor_estornado > 0"
+        DATETIME data_estorno "NOT NULL DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    log_auditoria {
+        INT id_log_auditoria PK "NOT NULL"
+        INT id_usuario FK "NOT NULL"
+        VARCHAR_64 tabela_afetada "NOT NULL"
+        INT id_registro_afetado "NOT NULL"
+        ENUM operacao "NOT NULL"
+        DATETIME data_hora "NOT NULL DEFAULT CURRENT_TIMESTAMP"
+        JSON valor_anterior "NULL"
+        JSON valor_novo "NULL"
+    }
+
+    %% RELACIONAMENTOS
+    categoria ||--o{ produto : "classifica (RN11)"
+    produto ||--o{ historico_preco : "tem histórico (RN10)"
+    produto ||--o{ item_pedido : "é vendido em (RN03)"
+    pedido ||--|{ item_pedido : "contém (RN01)"
+    cliente ||--o{ pedido : "realiza (RN02)"
+    cliente ||--o{ endereco : "possui"
+    endereco ||--o{ pedido : "recebe entrega de"
+    usuario ||--o{ pedido : "registra (RN02)"
+    forma_pagamento ||--o{ pedido : "quita"
+    pedido ||--o| estorno : "gera (PR02)"
+    usuario ||--o{ estorno : "autoriza"
+    usuario ||--o{ historico_preco : "altera"
+    usuario ||--o{ log_auditoria : "executa (RNF01)"
